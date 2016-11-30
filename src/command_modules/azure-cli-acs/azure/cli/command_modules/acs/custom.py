@@ -10,7 +10,11 @@ import os
 import os.path
 import platform
 import random
+<<<<<<< Updated upstream
 import stat
+=======
+import socket
+>>>>>>> Stashed changes
 import string
 import subprocess
 import sys
@@ -391,9 +395,16 @@ def acs_get_credentials(name=None, resource_group_name=None, dns_prefix=None, lo
         ix += 1
         path_candidate = '{}-{}-{}'.format(path, name, ix)
 
+    hostname = '{}.{}.cloudapp.azure.com'.format(dns_prefix, location)
+    try:
+        # discard result, we just want to validate we can do the lookup
+        # TODO: consider just passing this address to SecureCopy below to reduce latency
+        socket.gethostbyname(hostname)
+    except socket.gaierror as ex:
+        raise CLIError('Failed to lookup hostname {}: ({})', hostname, ex)
+
     # TODO: this only works for public cloud, need other casing for national clouds
-    acs_client.SecureCopy('azureuser', '{}.{}.cloudapp.azure.com'.format(dns_prefix, location),
-                          '.kube/config', path_candidate)
+    acs_client.SecureCopy('azureuser', hostname, '.kube/config', path_candidate)
 
     # merge things
     if path_candidate != path:
