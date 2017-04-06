@@ -523,18 +523,54 @@ def list_locks(resource_group_name=None, resource_provider_namespace=None,
         resource_group_name, resource_provider_namespace, parent_resource_path, resource_type,
         resource_name, filter=filter_string)
 
-def get_lock(name, resource_group_name=None):
+def _get_lock_parameters_from_resource_id(resource_id):
+    resource_type = None
+    resource_name = None
+    parent_resource_path = None
+    resource_provider_namespace = None
+
+    resource = parse_resource_id(resource_id)
+    resource_group_name = resource.get('resource_group', None)
+    if resource.get('grandchild_name', None) is not None:
+        name = resource.get('grandchild_name')
+        resource_type = resource.get('child_type')
+        resource_name = resource.get('child_name')
+        parent_resource_path = resource.get('type') + '/' + resource.get('name')
+        resource_provider_namespace = resource.get('namespace', None)
+    elif resource.get('child_name', None) is not None:
+        name = resource.get('child_name')
+        resource_type = resource.get('type')
+        resource_name = resource.get('name')
+        resource_provider_namespace = resource.get('namespace', None)
+    else:
+        name = resource.get('name')
+
+    return {
+        'resource_group': resource_group_name,
+        'resource_provider_namespace': resource_provider_namespace,
+        'resource_type': resource_type,
+        'resource_name': resource_name,
+        'parent_resource_path': parent_resource_path,
+        'name': name
+    }
+
+def get_lock(name=None, resource_group_name=None, resource_id=None):
     '''
     :param name: Name of the lock.
     :type name: str
     '''
     lock_client = _resource_lock_client_factory()
+    if resource_id is not None:
+        params = _get_lock_parameters_from_resource_id(resource_id)
+        resource_group_name = params.get('resource_group')
+        name = params.get('name')
     if resource_group_name is None:
         return lock_client.management_locks.get(name)
     return lock_client.management_locks.get_at_resource_group_level(resource_group_name, name)
 
-def delete_lock(name, resource_group_name=None, resource_provider_namespace=None,
-                parent_resource_path=None, resource_type=None, resource_name=None):
+def delete_lock(name=None, resource_group_name=None, resource_provider_namespace=None,
+                parent_resource_path=None, resource_type=None, resource_name=None,
+                resource_id=None):
     '''
     :param name: The name of the lock.
     :type name: str
@@ -547,6 +583,15 @@ def delete_lock(name, resource_group_name=None, resource_provider_namespace=None
     :param resource_name: Name of a resource that has a lock.
     :type resource_name: str
     '''
+    if resource_id is not None:
+        params = _get_lock_parameters_from_resource_id(resource_id)
+        resource_group_name = params.get('resource_group')
+        resource_provider_namespace = params.get('resource_provider_namespace')
+        parent_resource_path = params.get('parent_resource_path')
+        resource_type = params.get('resource_type')
+        resource_name = params.get('resource_name')
+        name = params.get('name')
+
     lock_client = _resource_lock_client_factory()
     lock_resource = _validate_lock_params(resource_group_name, resource_provider_namespace,
                                           parent_resource_path, resource_type, resource_name)
@@ -651,7 +696,12 @@ def _update_lock_parameters(parameters, level, notes, lock_id, lock_type):
     if lock_type is not None:
         parameters.type = lock_type
 
-def update_lock(name, resource_group_name=None, level=None, notes=None):
+def update_lock(name=None, resource_group_name=None, level=None, notes=None, resource_id=None):
+    if resource_id is not None:
+        params = _get_lock_parameters_from_resource_id(resource_id)
+        resource_group_name = params.get('resource_group')
+        name = params.get('name')
+
     lock_client = _resource_lock_client_factory()
     if resource_group_name is None:
         params = lock_client.management_locks.get(name)

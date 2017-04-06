@@ -82,6 +82,7 @@ register_cli_argument('tag', 'tag_value', options_list=('--value',))
 
 register_cli_argument('lock', 'name', options_list=('--name', '-n'))
 register_cli_argument('lock', 'level', options_list=('--lock-type', '-t'), **enum_choice_list(LockLevel))
+register_cli_argument('lock', 'resource_id', options_list=('--id'), help='Resource ID of the lock.')
 register_cli_argument('lock', 'parent_resource_path', resource_parent_type)
 register_cli_argument('lock', 'resource_provider_namespace', resource_namespace_type)
 register_cli_argument('lock', 'resource_type', arg_type=resource_type_type,
